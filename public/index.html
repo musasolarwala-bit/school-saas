@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>School Manager — One app for every school</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="topbar" id="topbar"><div class="brand"><img id="brandLogo" alt="" style="display:none;height:26px;vertical-align:middle;margin-right:8px"><span id="brandName">🏫 School Manager</span></div><nav><a href="#register">Register school</a><a href="#login">Login</a></nav></header>
+<main class="wrap">
+  <section class="hero">
+    <h1>Poora school, ek app mein.</h1>
+    <p>Fees, attendance aur results — har school ka apna alag, mehfooz workspace. Har teacher, har parent aur har student apni ID se login kare.</p>
+    <p class="muted">One platform, many schools. Each school's data is fully isolated — a teacher from one school can never see another school's students.</p>
+  </section>
+
+  <section class="grid2">
+    <div class="card" id="register">
+      <h2>Register your school</h2>
+      <p class="muted">Creates the school and its first school-admin account.</p>
+      <form id="regForm">
+        <label>School name <input name="school_name" required maxlength="200"></label>
+        <label>School slug (lowercase, e.g. city-model-school) <input name="slug" required pattern="[a-z0-9][a-z0-9-]{2,63}"></label>
+        <label>Phone <input name="phone"></label>
+        <label>Address <input name="address"></label>
+        <label>Admin name <input name="admin_name" required maxlength="200"></label>
+        <label>Admin email <input name="admin_email" type="email" required></label>
+        <label>Admin password (min 8 characters) <input name="admin_password" type="password" required minlength="8"></label>
+        <button type="submit">Register school</button>
+      </form>
+      <p class="msg" id="regMsg"></p>
+    </div>
+
+    <div class="card" id="login">
+      <h2>Login</h2>
+      <p class="muted">School users enter their school slug. Super-admins log in with email + password only.</p>
+      <form id="loginForm">
+        <label>School slug (leave empty for super-admin) <input name="slug" id="loginSlug"></label>
+        <label>Email <input name="email" type="email" required></label>
+        <label>Password <input name="password" type="password" required></label>
+        <button type="submit">Login</button>
+      </form>
+      <p class="muted" id="schoolTagline"></p>
+      <p class="msg" id="loginMsg"></p>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>What Stage 1 includes</h2>
+    <ul>
+      <li>Multi-school tenants with fully isolated data (tested at API and database level)</li>
+      <li>Per-user accounts: school_admin, teacher, parent, student — each with their own login</li>
+      <li>Classes and students with role-based visibility (teachers see only their classes; parents see only their child)</li>
+      <li>Super-admin dashboard: list schools, suspend / activate a school</li>
+      <li>Phase 1: 12 staff roles with a capability matrix, duration packages (12 / 24 / 36 months, Lifetime) with a 30-day free trial, and per-school branding on the login page</li>
+    </ul>
+    <p class="muted">Stage 2 will add attendance, fees, results, shop, uniforms, exam papers, accounts and notifications — ported from the offline School Manager app.</p>
+  </section>
+</main>
+<script src="/app.js"></script>
+<script>
+document.getElementById('regForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target).entries());
+  const out = document.getElementById('regMsg');
+  try {
+    const r = await api('/api/auth/register-school', 'POST', data);
+    saveSession(r);
+    out.textContent = 'School registered. Redirecting…';
+    goDashboard(r.user);
+  } catch (err) { out.textContent = 'Error: ' + err.message; }
+});
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target).entries());
+  if (!data.slug) delete data.slug;
+  const out = document.getElementById('loginMsg');
+  try {
+    const r = await api('/api/auth/login', 'POST', data);
+    saveSession(r);
+    out.textContent = 'Logged in. Redirecting…';
+    goDashboard(r.user);
+  } catch (err) { out.textContent = 'Error: ' + err.message; }
+});
+
+// School branding on the login page (best-effort): when a slug is
+// known — typed, or passed as ?slug= — fetch the PUBLIC branding and
+// wear the school's name, logo and colour. Any failure is silent:
+// the platform branding stays and login is unaffected.
+async function applyBranding(slug) {
+  if (!slug) return;
+  try {
+    const res = await fetch('/api/public/schools/' + encodeURIComponent(slug) + '/branding');
+    if (!res.ok) return;
+    const data = await res.json();
+    const b = data.branding;
+    if (!b) return;
+    document.getElementById('brandName').textContent = b.display_name || b.name;
+    document.title = (b.display_name || b.name) + ' — Login';
+    if (b.primary_color) document.getElementById('topbar').style.background = b.primary_color;
+    if (b.logo_url) {
+      const img = document.getElementById('brandLogo');
+      img.src = b.logo_url;
+      img.style.display = 'inline-block';
+    }
+    document.getElementById('schoolTagline').textContent = b.tagline || '';
+  } catch (err) { /* best-effort only */ }
+}
+const slugInput = document.getElementById('loginSlug');
+slugInput.addEventListener('change', () => applyBranding(slugInput.value.trim()));
+const urlSlug = new URLSearchParams(location.search).get('slug');
+if (urlSlug) { slugInput.value = urlSlug; applyBranding(urlSlug); }
+</script>
+</body>
+</html>

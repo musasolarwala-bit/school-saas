@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>School Dashboard — School Manager</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="topbar" id="topbar"><div class="brand">🏫 School Manager</div><div><span id="who"></span> <button class="sec" onclick="logout()">Logout</button></div></header>
+<main class="wrap">
+  <h1 id="schoolName">School dashboard</h1>
+  <p class="muted" id="roleLine"></p>
+  <p class="muted" id="subLine"></p>
+
+  <div class="card" id="dashCard">
+    <h2>Dashboard</h2>
+    <div class="stats" id="statCards"></div>
+    <div id="teacherClasses"></div>
+    <div id="recentWrap">
+      <h3>Recent admissions</h3>
+      <table><thead><tr><th>Admission no</th><th>Name</th><th>Class</th><th>Section</th><th>Roll</th></tr></thead><tbody id="recentRows"></tbody></table>
+    </div>
+  </div>
+
+  <div class="card" id="notifCard">
+    <h2>Notifications <span class="muted" id="notifCount"></span></h2>
+    <table><thead><tr><th>Message</th><th>When</th><th></th></tr></thead><tbody id="notifRows"></tbody></table>
+    <p><button class="sec" id="notifReadAll" type="button">Mark all read</button></p>
+  </div>
+
+  <div class="card" id="adminUsers" style="display:none">
+    <h2>Users</h2>
+    <form id="userForm">
+      <label>Name <input name="name" required></label>
+      <label>Email <input name="email" type="email" required></label>
+      <label>Password (min 8) <input name="password" type="password" required minlength="8"></label>
+      <label>Role <select name="role">
+        <option>teacher</option><option>parent</option><option>student</option>
+        <option>school_owner</option><option>school_admin</option><option>principal</option>
+        <option>accountant</option><option>hr_manager</option><option>transport_manager</option>
+        <option>librarian</option><option>receptionist</option>
+      </select></label>
+      <button type="submit">Create user</button>
+    </form>
+    <p class="msg" id="userMsg"></p>
+    <table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Active</th></tr></thead><tbody id="userRows"></tbody></table>
+  </div>
+
+  <div class="card" id="staffCard" style="display:none">
+    <h2>Staff (teachers &amp; employees)</h2>
+    <form id="staffForm">
+      <div class="inline">
+        <label>Full name <input name="full_name" required></label>
+        <label>Phone <input name="phone"></label>
+        <label>Email <input name="email" type="email"></label>
+      </div>
+      <div class="inline">
+        <label>Designation <input name="designation" placeholder="e.g. Senior Teacher"></label>
+        <label>Department <input name="department"></label>
+        <label>Qualifications <input name="qualifications"></label>
+      </div>
+      <div class="inline">
+        <label>Joining date <input name="joining_date" type="date"></label>
+        <label>Basic salary (Rs) <input name="salary_basic" type="number" min="0" step="any" value="0"></label>
+        <label>Login user (optional) <select name="user_id" id="staffUser"><option value="">— none —</option></select></label>
+      </div>
+      <button type="submit">Add staff member</button>
+    </form>
+    <p class="msg" id="staffMsg"></p>
+    <table><thead><tr><th>Name</th><th>Designation</th><th>Department</th><th>Phone</th><th>Basic salary</th><th>Status</th></tr></thead><tbody id="staffRows"></tbody></table>
+  </div>
+
+  <div class="card" id="brandingCard" style="display:none">
+    <h2>School settings — branding</h2>
+    <p class="muted">Shown on your school's login page: name, logo and colour.</p>
+    <form id="brandingForm">
+      <label>Display name <input name="display_name" maxlength="200"></label>
+      <label>Tagline <input name="tagline" maxlength="300"></label>
+      <label>Logo URL (https://…) <input name="logo_url" maxlength="1000"></label>
+      <label>Primary colour <input name="primary_color" type="color" value="#1d6fb8"> <span id="colorHex">#1d6fb8</span></label>
+      <button type="submit">Save branding</button>
+    </form>
+    <p class="msg" id="brandingMsg"></p>
+  </div>
+
+  <div class="card" id="sessionCard" style="display:none">
+    <h2>Academic sessions</h2>
+    <form id="sessionForm">
+      <div class="inline">
+        <label>Session name (e.g. 2027-28) <input name="name" required maxlength="100"></label>
+        <label>Starts <input name="starts_on" type="date"></label>
+        <label>Ends <input name="ends_on" type="date"></label>
+        <label>Set as current <input name="is_current" type="checkbox" style="width:auto"></label>
+      </div>
+      <button type="submit">Add session</button>
+    </form>
+    <p class="msg" id="sessionMsg"></p>
+    <table><thead><tr><th>Session</th><th>Starts</th><th>Ends</th><th>Current</th><th></th></tr></thead><tbody id="sessionRows"></tbody></table>
+  </div>
+
+  <div class="card">
+    <h2>Classes</h2>
+    <form id="classForm">
+      <label>Class name <input name="name" required></label>
+      <button type="submit">Add class</button>
+    </form>
+    <p class="msg" id="classMsg"></p>
+    <table><thead><tr><th>Class</th><th>Teacher</th></tr></thead><tbody id="classRows"></tbody></table>
+  </div>
+
+  <div class="card" id="subjectCard" style="display:none">
+    <h2>Subjects &amp; assignments</h2>
+    <form id="subjectForm">
+      <div class="inline">
+        <label>New subject <input name="name" required maxlength="200"></label>
+      </div>
+      <button type="submit">Add subject</button>
+    </form>
+    <p class="msg" id="subjectMsg"></p>
+    <table><thead><tr><th>Subject</th></tr></thead><tbody id="subjectRows"></tbody></table>
+    <h3>Assign subject to class</h3>
+    <form id="classSubjectForm">
+      <div class="inline">
+        <label>Class <select name="class_id" id="csClass"></select></label>
+        <label>Subject <select name="subject_id" id="csSubject"></select></label>
+      </div>
+      <button type="submit">Assign to class</button>
+    </form>
+    <table><thead><tr><th>Class</th><th>Subject</th></tr></thead><tbody id="csRows"></tbody></table>
+    <h3>Assign teacher to subject + class</h3>
+    <form id="teacherSubjectForm">
+      <div class="inline">
+        <label>Teacher <select name="teacher_user_id" id="tsTeacher"></select></label>
+        <label>Subject <select name="subject_id" id="tsSubject"></select></label>
+        <label>Class <select name="class_id" id="tsClass"></select></label>
+      </div>
+      <button type="submit">Assign teacher</button>
+    </form>
+    <table><thead><tr><th>Teacher</th><th>Subject</th><th>Class</th></tr></thead><tbody id="tsRows"></tbody></table>
+  </div>
+
+  <div class="card">
+    <h2>Students</h2>
+    <form id="studentForm">
+      <div class="inline">
+        <label>Class <select name="class_id" id="studentClass" required></select></label>
+        <label>Section <input name="section" value="A" required></label>
+        <label>Roll no <input name="roll_no" required></label>
+        <label>Student name <input name="name" required></label>
+      </div>
+      <div class="inline">
+        <label>Guardian / father name <input name="guardian_name"></label>
+        <label>Guardian phone <input name="guardian_phone"></label>
+        <label>Emergency contact name <input name="emergency_contact_name"></label>
+        <label>Emergency contact phone <input name="emergency_contact_phone"></label>
+      </div>
+      <div class="inline">
+        <label>Photo URL <input name="photo_url"></label>
+        <label>Previous school <input name="previous_school"></label>
+        <label>Medical notes <input name="medical_notes"></label>
+      </div>
+      <button type="submit">Add student</button>
+    </form>
+    <p class="msg" id="studentMsg"></p>
+
+    <h3>Find students</h3>
+    <div class="filters">
+      <label>Search name <input id="fQ" placeholder="e.g. Ali"></label>
+      <label>Class <select id="fClass"><option value="">All classes</option></select></label>
+      <label>Section <input id="fSection" placeholder="A"></label>
+      <label>Status <select id="fStatus">
+        <option value="">Any status</option><option>active</option><option>left</option>
+        <option>graduated</option><option>transferred</option>
+      </select></label>
+      <label>&nbsp;<button type="button" id="fApply">Apply filters</button></label>
+      <label>&nbsp;<button type="button" class="sec" id="exportBtn">Export CSV</button></label>
+    </div>
+    <table><thead><tr><th>Admission no</th><th>Name</th><th>Class</th><th>Section</th><th>Roll</th><th>Guardian phone</th><th>Status</th></tr></thead><tbody id="studentRows"></tbody></table>
+
+    <div id="studentAdminTools" style="display:none">
+      <h3>Promote a whole class</h3>
+      <form id="promoteForm">
+        <div class="inline">
+          <label>From class <select name="from_class_id" id="promoteFrom"></select></label>
+          <label>To class <select name="to_class_id" id="promoteTo"></select></label>
+          <label>To section (optional) <input name="to_section"></label>
+        </div>
+        <button type="submit">Promote active students</button>
+      </form>
+      <p class="msg" id="promoteMsg"></p>
+
+      <h3>Import students from CSV</h3>
+      <p class="muted">Headers: class_name, section, roll_no, name, guardian_name, guardian_phone, emergency_contact_name, emergency_contact_phone, previous_school, status</p>
+      <label>CSV file <input type="file" id="importFile" accept=".csv,text/csv"></label>
+      <label>…or paste CSV here <textarea id="importText" rows="5" placeholder="class_name,section,roll_no,name&#10;Class 5,A,1,Ali Khan"></textarea></label>
+      <button type="button" id="importBtn">Import students</button>
+      <p class="msg" id="importMsg"></p>
+    </div>
+  </div>
+
+  <div class="card" id="examCard" style="display:none">
+    <h2>Exams &amp; results</h2>
+    <form id="termForm">
+      <div class="inline">
+        <label>New term name <input name="name" required placeholder="e.g. Mid Term 2026"></label>
+        <label>Starts <input name="starts_on" type="date"></label>
+        <label>Ends <input name="ends_on" type="date"></label>
+      </div>
+      <button type="submit">Add term</button>
+    </form>
+    <p class="msg" id="termMsg"></p>
+    <table><thead><tr><th>Term</th><th>Results published</th><th></th></tr></thead><tbody id="termRows"></tbody></table>
+    <h3>New exam</h3>
+    <form id="examForm">
+      <div class="inline">
+        <label>Term <select name="term_id" id="examTerm"></select></label>
+        <label>Class <select name="class_id" id="examClass"></select></label>
+        <label>Subject <select name="subject_id" id="examSubject"></select></label>
+      </div>
+      <div class="inline">
+        <label>Exam name <input name="name" required placeholder="e.g. Paper 1"></label>
+        <label>Date <input name="exam_date" type="date"></label>
+        <label>Total marks <input name="total_marks" type="number" min="1" step="any" required value="100"></label>
+      </div>
+      <button type="submit">Add exam</button>
+    </form>
+    <p class="msg" id="examMsg"></p>
+    <table><thead><tr><th>Exam</th><th>Class</th><th>Subject</th><th>Date</th><th>Total</th></tr></thead><tbody id="examRows"></tbody></table>
+    <h3>Enter marks (bulk)</h3>
+    <form id="marksForm">
+      <div class="inline">
+        <label>Exam <select name="exam_id" id="marksExam"></select></label>
+      </div>
+      <label>One line per student: student_id, marks<textarea id="marksText" rows="5" placeholder="paste from the students table / CSV export"></textarea></label>
+      <button type="submit">Save marks</button>
+    </form>
+    <p class="msg" id="marksMsg"></p>
+    <h3>Student result</h3>
+    <form id="resultForm">
+      <div class="inline">
+        <label>Student ID <input name="student_id" required></label>
+        <label>Term <select name="term_id" id="resultTerm"></select></label>
+        <label>&nbsp;<button type="submit">Show result</button></label>
+        <label>&nbsp;<button type="button" class="sec" id="reportCardBtn">Open report card</button></label>
+      </div>
+    </form>
+    <div id="resultView"></div>
+    <p><button type="button" class="sec" id="gradingBtn">Reset grading scale to defaults (A+ 90, A 80, B 70, C 60, D 50, E 40, F below)</button></p>
+    <p class="msg" id="gradingMsg"></p>
+  </div>
+
+  <div class="card" id="homeworkCard" style="display:none">
+    <h2>Homework</h2>
+    <form id="hwForm">
+      <div class="inline">
+        <label>Class <select name="class_id" id="hwClass"></select></label>
+        <label>Subject <select name="subject_id" id="hwSubject"><option value="">— none —</option></select></label>
+        <label>Due date <input name="due_date" type="date"></label>
+      </div>
+      <label>Title <input name="title" required></label>
+      <label>Description <input name="description"></label>
+      <button type="submit">Assign homework</button>
+    </form>
+    <p class="msg" id="hwMsg"></p>
+    <table><thead><tr><th>Title</th><th>Class</th><th>Subject</th><th>Due</th><th>Submitted</th><th>Checked</th><th>My status</th></tr></thead><tbody id="hwRows"></tbody></table>
+  </div>
+
+  <div class="card" id="timetableCard" style="display:none">
+    <h2>Timetable</h2>
+    <form id="slotForm">
+      <div class="inline">
+        <label>Class <select name="class_id" id="ttClass"></select></label>
+        <label>Weekday <select name="weekday"><option value="1">Mon</option><option value="2">Tue</option><option value="3">Wed</option><option value="4">Thu</option><option value="5">Fri</option><option value="6">Sat</option><option value="7">Sun</option></select></label>
+        <label>Period <input name="period_no" type="number" min="1" required value="1"></label>
+      </div>
+      <div class="inline">
+        <label>Subject <select name="subject_id" id="ttSubject"><option value="">— none —</option></select></label>
+        <label>Teacher <select name="teacher_user_id" id="ttTeacher"><option value="">— none —</option></select></label>
+        <label>Starts <input name="starts_at" type="time"></label>
+        <label>Ends <input name="ends_at" type="time"></label>
+        <label>Room <input name="room"></label>
+      </div>
+      <button type="submit">Add slot</button>
+    </form>
+    <p class="msg" id="ttMsg"></p>
+    <table><thead><tr><th>Day</th><th>Period</th><th>Class</th><th>Subject</th><th>Teacher</th><th>Time</th><th>Room</th></tr></thead><tbody id="ttRows"></tbody></table>
+  </div>
+
+  <div class="card" id="portalCard" style="display:none">
+    <h2>My portal</h2>
+    <div id="portalView"></div>
+  </div>
+
+  <div class="card" id="transportCard" style="display:none">
+    <h2>Transport</h2>
+    <form id="vehicleForm">
+      <div class="inline">
+        <label>Registration no <input name="registration_no" required></label>
+        <label>Type <select name="vehicle_type"><option>bus</option><option>van</option><option>car</option><option>other</option></select></label>
+        <label>Capacity <input name="capacity" type="number" min="0" value="40"></label>
+        <label>Driver name <input name="driver_name"></label>
+        <label>Driver phone <input name="driver_phone"></label>
+      </div>
+      <button type="submit">Add vehicle</button>
+    </form>
+    <p class="msg" id="vehicleMsg"></p>
+    <table><thead><tr><th>Registration</th><th>Type</th><th>Capacity</th><th>Driver</th><th>Status</th></tr></thead><tbody id="vehicleRows"></tbody></table>
+    <h3>Routes &amp; stops</h3>
+    <form id="routeForm">
+      <div class="inline">
+        <label>Route name <input name="name" required></label>
+        <label>Vehicle <select name="vehicle_id" id="routeVehicle"><option value="">— none —</option></select></label>
+      </div>
+      <button type="submit">Add route</button>
+    </form>
+    <form id="stopForm">
+      <div class="inline">
+        <label>Route <select name="route_id" id="stopRoute"></select></label>
+        <label>Stop name <input name="stop_name" required></label>
+        <label>Order <input name="sequence" type="number" min="1" required value="1"></label>
+        <label>Pickup time <input name="pickup_time" type="time"></label>
+      </div>
+      <button type="submit">Add stop</button>
+    </form>
+    <p class="msg" id="routeMsg"></p>
+    <table><thead><tr><th>Route</th><th>Vehicle</th><th>Stops</th><th>Students</th></tr></thead><tbody id="routeRows"></tbody></table>
+    <h3>Assign student to route</h3>
+    <form id="assignForm">
+      <div class="inline">
+        <label>Student ID <input name="student_id" required></label>
+        <label>Route <select name="route_id" id="assignRoute"></select></label>
+        <label>Monthly fee (Rs) <input name="fee_amount" type="number" min="0" step="any" value="0"></label>
+      </div>
+      <button type="submit">Assign</button>
+    </form>
+    <p class="msg" id="assignMsg"></p>
+    <table><thead><tr><th>Student</th><th>Class</th><th>Route</th><th>Stop</th><th>Fee</th></tr></thead><tbody id="assignRows"></tbody></table>
+  </div>
+
+  <div class="card" id="libraryCard" style="display:none">
+    <h2>Library</h2>
+    <form id="bookForm">
+      <div class="inline">
+        <label>Title <input name="title" required></label>
+        <label>Author <input name="author"></label>
+        <label>ISBN <input name="isbn"></label>
+        <label>Category <input name="category"></label>
+        <label>Copies <input name="copies_total" type="number" min="0" value="1"></label>
+      </div>
+      <button type="submit">Add book</button>
+    </form>
+    <p class="msg" id="bookMsg"></p>
+    <table><thead><tr><th>Title</th><th>Author</th><th>Category</th><th>Available / total</th></tr></thead><tbody id="bookRows"></tbody></table>
+    <h3>Issue a book</h3>
+    <form id="loanForm">
+      <div class="inline">
+        <label>Book <select name="book_id" id="loanBook"></select></label>
+        <label>Student ID <input name="student_id"></label>
+        <label>Due date <input name="due_on" type="date"></label>
+      </div>
+      <button type="submit">Issue</button>
+    </form>
+    <p class="msg" id="loanMsg"></p>
+    <table><thead><tr><th>Book</th><th>Borrower</th><th>Issued</th><th>Due</th><th>Status</th><th></th></tr></thead><tbody id="loanRows"></tbody></table>
+  </div>
+
+  <div class="card" id="inventoryCard" style="display:none">
+    <h2>Inventory</h2>
+    <form id="itemForm">
+      <div class="inline">
+        <label>Item name <input name="name" required></label>
+        <label>Category <select name="category_id" id="itemCategory"><option value="">— none —</option></select></label>
+        <label>SKU <input name="sku"></label>
+        <label>Opening qty <input name="quantity" type="number" min="0" value="0"></label>
+        <label>Min stock <input name="min_stock" type="number" min="0" value="0"></label>
+        <label>Unit cost (Rs) <input name="unit_cost" type="number" min="0" step="any" value="0"></label>
+      </div>
+      <button type="submit">Add item</button>
+    </form>
+    <form id="invCatForm">
+      <div class="inline">
+        <label>New category <input name="name" required></label>
+        <label>&nbsp;<button type="submit">Add category</button></label>
+      </div>
+    </form>
+    <p class="msg" id="invMsg"></p>
+    <table><thead><tr><th>Item</th><th>Category</th><th>Qty</th><th>Min</th><th>Condition</th><th>Low stock</th></tr></thead><tbody id="itemRows"></tbody></table>
+    <h3>Stock movement</h3>
+    <form id="moveForm">
+      <div class="inline">
+        <label>Item <select name="item_id" id="moveItem"></select></label>
+        <label>Type <select name="movement_type"><option>in</option><option>out</option><option>adjust</option><option>damage</option><option>repair</option></select></label>
+        <label>Quantity <input name="quantity" type="number" value="1"></label>
+        <label>Condition after <select name="condition_after"><option value="">— unchanged —</option><option>good</option><option>needs_repair</option><option>damaged</option><option>retired</option></select></label>
+        <label>Note <input name="note"></label>
+      </div>
+      <button type="submit">Record movement</button>
+    </form>
+    <p class="msg" id="moveMsg"></p>
+  </div>
+
+  <div class="card" id="hrCard" style="display:none">
+    <h2>HR — leaves &amp; payroll</h2>
+    <h3>Request leave</h3>
+    <form id="leaveForm">
+      <div class="inline">
+        <label>Type <select name="leave_type"><option>casual</option><option>sick</option><option>annual</option><option>unpaid</option><option>other</option></select></label>
+        <label>From <input name="from_date" type="date" required></label>
+        <label>To <input name="to_date" type="date" required></label>
+        <label>Staff profile ID (HR only) <input name="staff_profile_id"></label>
+        <label>Reason <input name="reason"></label>
+      </div>
+      <button type="submit">Submit leave request</button>
+    </form>
+    <p class="msg" id="leaveMsg"></p>
+    <table><thead><tr><th>Staff</th><th>Type</th><th>From</th><th>To</th><th>Status</th><th></th></tr></thead><tbody id="leaveRows"></tbody></table>
+    <h3>Payroll</h3>
+    <form id="payrollForm">
+      <div class="inline">
+        <label>Month (YYYY-MM) <input name="month" required placeholder="2026-11"></label>
+        <label>&nbsp;<button type="submit">Create payroll run</button></label>
+      </div>
+    </form>
+    <p class="msg" id="payrollMsg"></p>
+    <table><thead><tr><th>Month</th><th>Status</th><th>Staff</th><th>Total net</th><th></th></tr></thead><tbody id="payrollRows"></tbody></table>
+    <div id="payrollItems"></div>
+  </div>
+
+  <div class="card" id="analyticsCard" style="display:none">
+    <h2>Analytics (real numbers)</h2>
+    <div class="stats" id="analyticsStats"></div>
+    <div id="analyticsDetail"></div>
+  </div>
+
+  <div class="card" id="reportsCard" style="display:none">
+    <h2>Reports</h2>
+    <p class="muted">CSV exports — they open directly in Excel.</p>
+    <p>
+      <button type="button" class="sec" onclick="dlReport('/api/school/reports/students.csv', 'students-report.csv')">Students CSV</button>
+      <button type="button" class="sec" onclick="dlReport('/api/school/reports/fees.csv', 'fees-summary.csv')">Fees summary CSV</button>
+      <button type="button" class="sec" onclick="dlReport('/api/school/reports/transport.csv', 'transport.csv')">Transport CSV</button>
+      <button type="button" class="sec" onclick="dlReport('/api/school/reports/audit.csv', 'audit-log.csv')">Audit log CSV</button>
+    </p>
+    <p class="msg" id="reportMsg"></p>
+    <h3>Audit log (latest)</h3>
+    <table><thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Entity</th></tr></thead><tbody id="auditRows"></tbody></table>
+  </div>
+</main>
+<script src="/app.js"></script>
+<script>
+let ME = null;
+let CLASSES = [];
+
+function money(n) { return 'Rs ' + Number(n || 0).toLocaleString('en-US'); }
+function statCard(num, lbl) {
+  return '<div class="stat"><div class="num">' + esc(num) + '</div><div class="lbl">' + esc(lbl) + '</div></div>';
+}
+
+async function loadDashboard() {
+  try {
+    const r = await api('/api/school/dashboard');
+    const d = r.dashboard;
+    const box = document.getElementById('statCards');
+    if (d.totals) {
+      const a = d.attendance_today;
+      box.innerHTML =
+        statCard(d.totals.students, 'Active students') +
+        statCard(d.totals.teachers, 'Teachers') +
+        statCard(d.totals.staff, 'Staff') +
+        statCard(d.totals.classes, 'Classes') +
+        statCard(a.present + ' / ' + (a.present + a.absent + a.late + a.half_day), "Today's attendance (present / marked)") +
+        statCard(a.pct === null ? '—' : a.pct + '%', "Today's attendance %") +
+        statCard(money(d.fees.today_collection), "Today's fee collection") +
+        statCard(money(d.fees.month_collection), "This month's fee collection") +
+        statCard(money(d.fees.outstanding), 'Outstanding fees') +
+        statCard(money(d.fees.month_expenses), "This month's expenses");
+      document.getElementById('recentRows').innerHTML = (d.recent_admissions || []).map(s =>
+        '<tr><td>' + esc(s.admission_number || '') + '</td><td>' + esc(s.name) + '</td><td>' + esc(s.class_name) +
+        '</td><td>' + esc(s.section) + '</td><td>' + esc(s.roll_no) + '</td></tr>').join('') ||
+        '<tr><td colspan="5">No admissions yet</td></tr>';
+    } else if (d.classes) {
+      box.innerHTML = '';
+      document.getElementById('recentWrap').style.display = 'none';
+      document.getElementById('teacherClasses').innerHTML =
+        '<table><thead><tr><th>My class</th><th>Students</th><th>Present today</th><th>Absent today</th></tr></thead><tbody>' +
+        d.classes.map(c => '<tr><td>' + esc(c.name) + '</td><td>' + c.student_count + '</td><td>' +
+          c.attendance_today.present + '</td><td>' + c.attendance_today.absent + '</td></tr>').join('') +
+        '</tbody></table>';
+    } else if (d.student) {
+      box.innerHTML = statCard(d.student.name, 'Student') +
+        statCard(d.student.class_name + ' ' + d.student.section, 'Class') +
+        statCard(d.attendance_month && d.attendance_month.pct !== null ? d.attendance_month.pct + '%' : '—', 'Attendance this month');
+      document.getElementById('recentWrap').style.display = 'none';
+    }
+  } catch (err) { /* dashboard is best-effort */ }
+}
+
+async function loadNotifications() {
+  try {
+    const r = await api('/api/school/notifications');
+    document.getElementById('notifCount').textContent = r.unread_count > 0 ? '(' + r.unread_count + ' unread)' : '';
+    document.getElementById('notifRows').innerHTML = r.notifications.slice(0, 20).map(n =>
+      '<tr><td>' + (n.is_read ? '' : '<strong>● </strong>') + esc(n.title) +
+      (n.body ? '<br><span class="muted">' + esc(n.body) + '</span>' : '') + '</td><td>' +
+      esc(new Date(n.created_at).toLocaleString('en-GB')) + '</td><td>' +
+      (n.is_read ? '' : '<button type="button" class="sec" onclick="markRead(\'' + n.id + '\')">Mark read</button>') +
+      '</td></tr>').join('') || '<tr><td colspan="3">No notifications</td></tr>';
+  } catch (err) { /* best-effort */ }
+}
+async function markRead(id) {
+  await api('/api/school/notifications/' + id + '/read', 'POST', {});
+  loadNotifications();
+}
+document.getElementById('notifReadAll').addEventListener('click', async () => {
+  await api('/api/school/notifications/read-all', 'POST', {});
+  loadNotifications();
+});
+
+async function loadStudents() {
+  const params = new URLSearchParams();
+  const q = document.getElementById('fQ').value.trim();
+  const fc = document.getElementById('fClass').value;
+  const fs = document.getElementById('fSection').value.trim();
+  const fst = document.getElementById('fStatus').value;
+  if (q) params.set('q', q);
+  if (fc) params.set('class_id', fc);
+  if (fs) params.set('section', fs);
+  if (fst) params.set('status', fst);
+  const students = await api('/api/school/students' + (params.toString() ? '?' + params : '')).catch(() => ({ students: [] }));
+  document.getElementById('studentRows').innerHTML = students.students.map(s =>
+    '<tr><td>' + esc(s.admission_number || '') + '</td><td>' + esc(s.name) + '</td><td>' + esc(s.class_name) + '</td><td>' + esc(s.section) +
+    '</td><td>' + esc(s.roll_no) + '</td><td>' + esc(s.guardian_phone || '') + '</td><td>' + esc(s.status) + '</td></tr>').join('') ||
+    '<tr><td colspan="7">No students found</td></tr>';
+  return params;
+}
+
+async function loadStaff() {
+  const r = await api('/api/school/staff').catch(() => ({ staff: [] }));
+  document.getElementById('staffRows').innerHTML = r.staff.map(s =>
+    '<tr><td>' + esc(s.full_name) + '</td><td>' + esc(s.designation || '') + '</td><td>' + esc(s.department || '') +
+    '</td><td>' + esc(s.phone || '') + '</td><td>' + money(s.salary_basic) + '</td><td>' + esc(s.status) + '</td></tr>').join('') ||
+    '<tr><td colspan="6">No staff yet</td></tr>';
+}
+
+async function loadSubjects() {
+  const subs = await api('/api/school/subjects').catch(() => ({ subjects: [] }));
+  document.getElementById('subjectRows').innerHTML = subs.subjects.map(s =>
+    '<tr><td>' + esc(s.name) + '</td></tr>').join('') || '<tr><td>No subjects yet</td></tr>';
+  const opts = subs.subjects.map(s => '<option value="' + s.id + '">' + esc(s.name) + '</option>').join('');
+  document.getElementById('csSubject').innerHTML = opts;
+  document.getElementById('tsSubject').innerHTML = opts;
+  const cs = await api('/api/school/subjects/class-subjects').catch(() => ({ class_subjects: [] }));
+  document.getElementById('csRows').innerHTML = cs.class_subjects.map(x =>
+    '<tr><td>' + esc(x.class_name) + '</td><td>' + esc(x.subject_name) + '</td></tr>').join('') ||
+    '<tr><td colspan="2">No class subjects yet</td></tr>';
+  const ts = await api('/api/school/subjects/teacher-subjects').catch(() => ({ teacher_subjects: [] }));
+  document.getElementById('tsRows').innerHTML = ts.teacher_subjects.map(x =>
+    '<tr><td>' + esc(x.teacher_name) + '</td><td>' + esc(x.subject_name) + '</td><td>' + esc(x.class_name) + '</td></tr>').join('') ||
+    '<tr><td colspan="3">No teacher assignments yet</td></tr>';
+}
+
+async function loadSessions() {
+  const r = await api('/api/school/sessions').catch(() => ({ sessions: [] }));
+  document.getElementById('sessionRows').innerHTML = r.sessions.map(s =>
+    '<tr><td>' + esc(s.name) + '</td><td>' + esc((s.starts_on || '').slice(0, 10)) + '</td><td>' +
+    esc((s.ends_on || '').slice(0, 10)) + '</td><td>' + (s.is_current ? 'Yes' : '') + '</td><td>' +
+    (s.is_current ? '' : '<button type="button" class="sec" onclick="setCurrent(\'' + s.id + '\')">Set current</button>') +
+    '</td></tr>').join('') || '<tr><td colspan="5">No sessions yet</td></tr>';
+}
+async function setCurrent(id) {
+  await api('/api/school/sessions/' + id + '/set-current', 'POST', {});
+  load();
+}
+
+async function load() {
+  const me = await api('/api/auth/me');
+  ME = me;
+  document.getElementById('schoolName').textContent = me.school ? (me.school.display_name || me.school.name) : 'School dashboard';
+  document.getElementById('who').textContent = me.user.name + ' (' + me.user.role + ')';
+  document.getElementById('roleLine').textContent = me.school ? ('Session ' + me.school.session + ' · Slug ' + me.school.slug) : '';
+  if (me.school && me.school.primary_color) {
+    document.getElementById('topbar').style.background = me.school.primary_color;
+  }
+  if (me.subscription) {
+    const s = me.subscription;
+    document.getElementById('subLine').textContent =
+      'Subscription: ' + (s.plan_name || 'Free trial') + ' · Status: ' + s.status +
+      (s.expires_at ? ' · Expires: ' + new Date(s.expires_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ' · Never expires') +
+      (s.student_limit !== null && s.student_limit !== undefined ? ' · Student limit: ' + s.student_limit : '');
+  }
+  const role = me.user.role;
+  const canManageUsers = ['school_admin', 'school_owner', 'hr_manager'].includes(role);
+  const canWriteStudents = ['school_admin', 'school_owner'].includes(role);
+  if (canManageUsers) {
+    document.getElementById('adminUsers').style.display = 'block';
+    document.getElementById('staffCard').style.display = 'block';
+  }
+  if (canWriteStudents) document.getElementById('studentAdminTools').style.display = 'block';
+  if (['school_admin', 'school_owner'].includes(role)) {
+    document.getElementById('brandingCard').style.display = 'block';
+    try {
+      const b = await api('/api/school/settings/branding');
+      const f = document.getElementById('brandingForm');
+      f.display_name.value = b.branding.display_name || '';
+      f.tagline.value = b.branding.tagline || '';
+      f.logo_url.value = b.branding.logo_url || '';
+      f.primary_color.value = b.branding.primary_color || '#1d6fb8';
+      document.getElementById('colorHex').textContent = f.primary_color.value;
+    } catch (err) { /* branding is best-effort in the UI */ }
+  }
+  const classReadRoles = ['school_admin', 'school_owner', 'principal', 'teacher', 'transport_manager', 'librarian', 'receptionist'];
+  if (classReadRoles.includes(role)) {
+    document.getElementById('subjectCard').style.display = 'block';
+    document.getElementById('sessionCard').style.display = 'block';
+  }
+  const classes = await api('/api/school/classes').catch(() => ({ classes: [] }));
+  CLASSES = classes.classes;
+  document.getElementById('classRows').innerHTML = CLASSES.map(c =>
+    '<tr><td>' + esc(c.name) + '</td><td>' + esc(c.teacher_id || '—') + '</td></tr>').join('') || '<tr><td colspan="2">No classes yet</td></tr>';
+  const classOpts = CLASSES.map(c => '<option value="' + c.id + '">' + esc(c.name) + '</option>').join('');
+  document.getElementById('studentClass').innerHTML = classOpts;
+  document.getElementById('fClass').innerHTML = '<option value="">All classes</option>' + classOpts;
+  document.getElementById('csClass').innerHTML = classOpts;
+  document.getElementById('tsClass').innerHTML = classOpts;
+  document.getElementById('promoteFrom').innerHTML = classOpts;
+  document.getElementById('promoteTo').innerHTML = classOpts;
+  await loadStudents();
+  await loadDashboard();
+  await loadNotifications();
+  if (canManageUsers) {
+    const users = await api('/api/school/users');
+    document.getElementById('userRows').innerHTML = users.users.map(u =>
+      '<tr><td>' + esc(u.name) + '</td><td>' + esc(u.email) + '</td><td>' + esc(u.role) +
+      '</td><td>' + (u.active ? 'Yes' : 'No') + '</td></tr>').join('');
+    document.getElementById('tsTeacher').innerHTML = users.users.filter(u => u.role === 'teacher').map(u =>
+      '<option value="' + u.id + '">' + esc(u.name) + '</option>').join('');
+    document.getElementById('staffUser').innerHTML = '<option value="">— none —</option>' + users.users.map(u =>
+      '<option value="' + u.id + '">' + esc(u.name) + ' (' + esc(u.role) + ')</option>').join('');
+    await loadStaff();
+  }
+  if (classReadRoles.includes(role)) {
+    await loadSubjects();
+    await loadSessions();
+  }
+  await initPhases(role);
+}
+document.getElementById('userForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target).entries());
+  try { await api('/api/school/users', 'POST', data); e.target.reset(); load(); }
+  catch (err) { document.getElementById('userMsg').textContent = 'Error: ' + err.message; }
+});
+document.getElementById('staffForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target).entries());
+  if (!data.user_id) delete data.user_id;
+  if (!data.joining_date) delete data.joining_date;
+  data.salary_basic = Number(data.salary_basic || 0);
+  try { await api('/api/school/staff', 'POST', data); e.target.reset(); loadStaff(); }
+  catch (err) { document.getElementById('staffMsg').textContent = 'Error: ' + err.message; }
+});
+document.getElementById('classForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target).entries());
+  try { await api('/api/school/classes', 'POST', data); e.target.reset(); load(); }
+  catch (err) { document.getElementById('classMsg').textContent = 'Error: ' + err.message; }
+});
+document.getElementById('subjectForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target).entries());
+  try { await api('/api/school/subjects', 'POST', data); e.target.reset(); loadSubjects(); }
+  catch (err) { document.getElementById('subjectMsg').textContent = 'Error: ' + err.message; }
+});
+document.getElementById('classSubjectForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target).entries());
+  try { await api('/api/school/subjects/class-subjects', 'POST', data); loadSubjects(); }
+  catch (err) { document.getElementById('subjectMsg').textContent = 'Error: ' + err.message; }
+});
+document.getElementById('teacherSubjectForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target).entries());
+  try { await api('/api/school/subjects/teacher-subjects', 'POST', data); loadSubjects(); }
+  catch (err) { document.getElementById('subjectMsg').textContent = 'Error: ' + err.message; }
+});
+document.getElementById('sessionForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const data = {
+    name: f.name.value,
+    starts_on: f.starts_on.value || null,
+    ends_on: f.ends_on.value || null,
+    is_current: f.is_current.checked,
+  };
+  try { await api('/api/school/sessions', 'POST', data); f.reset(); load(); }
+  catch (err) { document.getElementById('sessionMsg').textContent = 'Error: ' + err.message; }
+});
+document.getElementById('studentForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target).entries());
+  for (const k of Object.keys(data)) if (data[k] === '') delete data[k];
+  try { await api('/api/school/students', 'POST', data); e.target.reset(); loadStudents(); loadDashboard(); }
+  catch (err) { document.getElementById('studentMsg').textContent = 'Error: ' + err.message; }
+});
+document.getElementById('fApply').addEventListener('click', () => loadStudents());
+document.getElementById('exportBtn').addEventListener('click', async () => {
+  const params = new URLSearchParams();
+  const q = document.getElementById('fQ').value.trim();
+  const fc = document.getElementById('fClass').value;
+  const fs = document.getElementById('fSection').value.trim();
+  const fst = document.getElementById('fStatus').value;
+  if (q) params.set('q', q);
+  if (fc) params.set('class_id', fc);
+  if (fs) params.set('section', fs);
+  if (fst) params.set('status', fst);
+  try { await downloadCsv('/api/school/students/export.csv' + (params.toString() ? '?' + params : ''), 'students.csv'); }
+  catch (err) { document.getElementById('studentMsg').textContent = 'Error: ' + err.message; }
+});
+document.getElementById('promoteForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target).entries());
+  if (!data.to_section) delete data.to_section;
+  try {
+    const r = await api('/api/school/students/promote', 'POST', data);
+    document.getElementById('promoteMsg').textContent = 'Promoted ' + r.promoted + ' student(s).';
+    document.getElementById('promoteMsg').style.color = '#047857';
+    loadStudents();
+  } catch (err) { document.getElementById('promoteMsg').textContent = 'Error: ' + err.message; }
+});
+document.getElementById('importFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (file) document.getElementById('importText').value = await file.text();
+});
+document.getElementById('importBtn').addEventListener('click', async () => {
+  const csv = document.getElementById('importText').value;
+  const msg = document.getElementById('importMsg');
+  try {
+    const r = await api('/api/school/students/import', 'POST', { csv });
+    msg.style.color = '#047857';
+    msg.textContent = 'Imported ' + r.imported + ' student(s).' +
+      (r.errors.length ? ' Errors: ' + r.errors.map(x => 'row ' + x.row + ': ' + x.error).join(' · ') : '');
+    loadStudents(); loadDashboard();
+  } catch (err) { msg.style.color = '#DC2626'; msg.textContent = 'Error: ' + err.message; }
+});
+document.getElementById('brandingForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const data = {
+    display_name: f.display_name.value || null,
+    tagline: f.tagline.value || null,
+    logo_url: f.logo_url.value || null,
+    primary_color: f.primary_color.value,
+  };
+  try {
+    await api('/api/school/settings/branding', 'PUT', data);
+    document.getElementById('brandingMsg').textContent = 'Branding saved.';
+    load();
+  } catch (err) { document.getElementById('brandingMsg').textContent = 'Error: ' + err.message; }
+});
+document.querySelector('#brandingForm input[name=primary_color]').addEventListener('input', (e) => {
+  document.getElementById('colorHex').textContent = e.target.value;
+});
+
+// ---------------- Phases 4–8 UI ----------------
+const DAYS = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+let TERMS = [];
+let EXAMS = [];
+
+async function dlReport(path, filename) {
+  try { await downloadCsv(path, filename); }
+  catch (err) { const m = document.getElementById('reportMsg'); if (m) m.textContent = 'Error: ' + err.message; }
+}
+async function openHtml(path) {
+  const token = localStorage.getItem('sm_token');
+  const res = await fetch(path, { headers: token ? { Authorization: 'Bearer ' + token } : {} });
+  if (!res.ok) throw new Error('Failed (' + res.status + ')');
+  const blob = await res.blob();
+  window.open(URL.createObjectURL(blob), '_blank');
+}
+function opts(list, label) {
+  return list.map(x => '<option value="' + x.id + '">' + esc(label(x)) + '</option>').join('');
+}
+
+async function loadExams() {
+  const t = await api('/api/school/exams/terms').catch(() => ({ terms: [] }));
+  TERMS = t.terms;
+  document.getElementById('termRows').innerHTML = TERMS.map(x =>
+    '<tr><td>' + esc(x.name) + '</td><td>' + (x.results_published ? 'Yes' : 'No') + '</td><td>' +
+    '<button type="button" class="sec" onclick="togglePublish(\'' + x.id + '\', ' + (!x.results_published) + ')">' +
+    (x.results_published ? 'Unpublish' : 'Publish results') + '</button></td></tr>').join('') ||
+    '<tr><td colspan="3">No terms yet</td></tr>';
+  const termOpts = opts(TERMS, x => x.name);
+  document.getElementById('examTerm').innerHTML = termOpts;
+  document.getElementById('resultTerm').innerHTML = termOpts;
+  const subs = await api('/api/school/subjects').catch(() => ({ subjects: [] }));
+  document.getElementById('examSubject').innerHTML = opts(subs.subjects, x => x.name);
+  const ex = await api('/api/school/exams').catch(() => ({ exams: [] }));
+  EXAMS = ex.exams;
+  document.getElementById('examRows').innerHTML = EXAMS.map(x =>
+    '<tr><td>' + esc(x.name) + '</td><td>' + esc(x.class_name) + '</td><td>' + esc(x.subject_name) +
+    '</td><td>' + esc(x.exam_date || '') + '</td><td>' + x.total_marks + '</td></tr>').join('') ||
+    '<tr><td colspan="5">No exams yet</td></tr>';
+  document.getElementById('marksExam').innerHTML = opts(EXAMS, x => x.name + ' (' + x.class_name + ' · ' + x.subject_name + ')');
+}
+async function togglePublish(id, published) {
+  await api('/api/school/exams/terms/' + id + '/publish', 'POST', { published });
+  loadExams();
+}
+
+async function loadHomeworkList() {
+  const r = await api('/api/school/homework').catch(() => ({ homework: [] }));
+  document.getElementById('hwRows').innerHTML = r.homework.map(h =>
+    '<tr><td>' + esc(h.title) + '</td><td>' + esc(h.class_name) + '</td><td>' + esc(h.subject_name || '') +
+    '</td><td>' + esc(h.due_date || '') + '</td><td>' + h.submitted_count + ' / ' + h.submission_count +
+    '</td><td>' + h.checked_count + '</td><td>' + esc(h.my_status || '') + '</td></tr>').join('') ||
+    '<tr><td colspan="7">No homework yet</td></tr>';
+}
+
+async function loadTimetable() {
+  const r = await api('/api/school/timetable').catch(() => ({ slots: [] }));
+  document.getElementById('ttRows').innerHTML = r.slots.map(s =>
+    '<tr><td>' + DAYS[s.weekday] + '</td><td>' + s.period_no + '</td><td>' + esc(s.class_name) +
+    '</td><td>' + esc(s.subject_name || '') + '</td><td>' + esc(s.teacher_name || '') + '</td><td>' +
+    esc((s.starts_at || '') + (s.ends_at ? '–' + s.ends_at : '')) + '</td><td>' + esc(s.room || '') + '</td></tr>').join('') ||
+    '<tr><td colspan="7">No timetable slots yet</td></tr>';
+}
+
+async function loadPortal(role) {
+  const view = document.getElementById('portalView');
+  try {
+    if (role === 'teacher') {
+      const r = await api('/api/school/portal/teacher');
+      const p = r.portal;
+      view.innerHTML =
+        '<p><strong>My classes:</strong> ' + p.classes.map(c => esc(c.name) + ' (' + c.student_count + ' students)').join(', ') + '</p>' +
+        '<p><strong>Homework waiting to check:</strong> ' + p.homework_to_check + '</p>' +
+        '<p><strong>Today (' + DAYS[p.today.weekday] + '):</strong> ' +
+        (p.today.timetable.map(s => 'P' + s.period_no + ' ' + esc(s.class_name) + ' ' + esc(s.subject_name || '')).join(' · ') || 'no slots') + '</p>' +
+        '<p><strong>Upcoming exams:</strong> ' +
+        (p.upcoming_exams.map(e => esc(e.name) + ' — ' + esc(e.exam_date)).join(' · ') || 'none') + '</p>';
+    } else {
+      const r = await api('/api/school/portal/me');
+      const p = r.portal;
+      if (!p.student) { view.innerHTML = '<p class="muted">No student is linked to this account.</p>'; return; }
+      view.innerHTML =
+        '<p><strong>' + esc(p.student.name) + '</strong> · ' + esc(p.student.class_name) + ' ' + esc(p.student.section) +
+        ' · Roll ' + esc(p.student.roll_no) + ' · ' + esc(p.student.admission_number || '') + '</p>' +
+        '<p>Attendance this month: <strong>' + (p.attendance.month.pct === null ? '—' : p.attendance.month.pct + '%') + '</strong>' +
+        ' · Fees pending: <strong>' + money(p.fees.pending) + '</strong>' +
+        ' · Homework pending: <strong>' + p.homework_pending.length + '</strong>' +
+        ' · Books on loan: <strong>' + p.library_loans.length + '</strong></p>' +
+        '<p>Transport: ' + (p.transport ? esc(p.transport.route_name) + ' · stop ' + esc(p.transport.stop_name || '—') +
+          ' · pickup ' + esc(p.transport.pickup_time || '—') + ' · driver ' + esc(p.transport.driver_name || '—') : 'not assigned') + '</p>' +
+        '<p>Results: ' + (p.results.map(x => esc(x.term.name) + ': ' + x.pct + '% (' + esc(x.grade) + ', GPA ' + x.gpa + ')').join(' · ') || 'none published yet') + '</p>';
+    }
+  } catch (err) { view.innerHTML = '<p class="muted">Portal unavailable for this role.</p>'; }
+}
+
+async function loadTransport() {
+  const v = await api('/api/school/transport/vehicles').catch(() => ({ vehicles: [] }));
+  document.getElementById('vehicleRows').innerHTML = v.vehicles.map(x =>
+    '<tr><td>' + esc(x.registration_no) + '</td><td>' + esc(x.vehicle_type) + '</td><td>' + x.capacity +
+    '</td><td>' + esc(x.driver_name || '') + '</td><td>' + esc(x.status) + '</td></tr>').join('') ||
+    '<tr><td colspan="5">No vehicles yet</td></tr>';
+  document.getElementById('routeVehicle').innerHTML = '<option value="">— none —</option>' + opts(v.vehicles, x => x.registration_no);
+  const r = await api('/api/school/transport/routes').catch(() => ({ routes: [] }));
+  document.getElementById('routeRows').innerHTML = r.routes.map(x =>
+    '<tr><td>' + esc(x.name) + '</td><td>' + esc(x.registration_no || '') + '</td><td>' + x.stop_count +
+    '</td><td>' + x.student_count + '</td></tr>').join('') || '<tr><td colspan="4">No routes yet</td></tr>';
+  const routeOpts = opts(r.routes, x => x.name);
+  document.getElementById('stopRoute').innerHTML = routeOpts;
+  document.getElementById('assignRoute').innerHTML = routeOpts;
+  const a = await api('/api/school/transport/assignments').catch(() => ({ assignments: [] }));
+  document.getElementById('assignRows').innerHTML = a.assignments.map(x =>
+    '<tr><td>' + esc(x.student_name) + '</td><td>' + esc(x.class_name) + '</td><td>' + esc(x.route_name) +
+    '</td><td>' + esc(x.stop_name || '') + '</td><td>' + money(x.fee_amount) + '</td></tr>').join('') ||
+    '<tr><td colspan="5">No assignments yet</td></tr>';
+}
+
+async function loadLibrary() {
+  const b = await api('/api/school/library/books').catch(() => ({ books: [] }));
+  document.getElementById('bookRows').innerHTML = b.books.map(x =>
+    '<tr><td>' + esc(x.title) + '</td><td>' + esc(x.author || '') + '</td><td>' + esc(x.category || '') +
+    '</td><td>' + x.copies_available + ' / ' + x.copies_total + '</td></tr>').join('') ||
+    '<tr><td colspan="4">No books yet</td></tr>';
+  document.getElementById('loanBook').innerHTML = opts(b.books, x => x.title);
+  const l = await api('/api/school/library/loans').catch(() => ({ loans: [] }));
+  document.getElementById('loanRows').innerHTML = l.loans.map(x =>
+    '<tr><td>' + esc(x.book_title) + '</td><td>' + esc(x.student_name || x.staff_name || '') + '</td><td>' +
+    esc(x.issued_on) + '</td><td>' + esc(x.due_on) + '</td><td>' + esc(x.status) +
+    (x.days_overdue ? ' (' + x.days_overdue + 'd late)' : '') + '</td><td>' +
+    (x.status !== 'returned' ? '<button type="button" class="sec" onclick="returnLoan(\'' + x.id + '\')">Return</button>' : '') +
+    '</td></tr>').join('') || '<tr><td colspan="6">No loans yet</td></tr>';
+}
+async function returnLoan(id) {
+  try {
+    const r = await api('/api/school/library/loans/' + id + '/return', 'POST', {});
+    document.getElementById('loanMsg').textContent = r.days_late > 0
+      ? 'Returned ' + r.days_late + ' day(s) late — fine Rs ' + r.fine + ' (report only).'
+      : 'Returned on time.';
+    loadLibrary();
+  } catch (err) { document.getElementById('loanMsg').textContent = 'Error: ' + err.message; }
+}
+
+async function loadInventory() {
+  const cats = await api('/api/school/inventory/categories').catch(() => ({ categories: [] }));
+  document.getElementById('itemCategory').innerHTML = '<option value="">— none —</option>' + opts(cats.categories, x => x.name);
+  const r = await api('/api/school/inventory/items').catch(() => ({ items: [] }));
+  document.getElementById('itemRows').innerHTML = r.items.map(x =>
+    '<tr><td>' + esc(x.name) + '</td><td>' + esc(x.category_name || '') + '</td><td>' + x.quantity +
+    '</td><td>' + x.min_stock + '</td><td>' + esc(x.condition) + '</td><td>' + (x.low_stock ? '⚠ Low' : '') + '</td></tr>').join('') ||
+    '<tr><td colspan="6">No items yet</td></tr>';
+  document.getElementById('moveItem').innerHTML = opts(r.items, x => x.name);
+}
+
+async function loadHr() {
+  const l = await api('/api/school/hr/leaves').catch(() => ({ leaves: [] }));
+  document.getElementById('leaveRows').innerHTML = l.leaves.map(x =>
+    '<tr><td>' + esc(x.staff_name || x.user_name || '') + '</td><td>' + esc(x.leave_type) + '</td><td>' +
+    esc(x.from_date) + '</td><td>' + esc(x.to_date) + '</td><td>' + esc(x.status) + '</td><td>' +
+    (x.status === 'pending' ? '<button type="button" class="sec" onclick="decideLeave(\'' + x.id + '\', \'approved\')">Approve</button> ' +
+      '<button type="button" class="sec" onclick="decideLeave(\'' + x.id + '\', \'rejected\')">Reject</button>' : '') +
+    '</td></tr>').join('') || '<tr><td colspan="6">No leave requests</td></tr>';
+  const p = await api('/api/school/hr/payroll/runs').catch(() => ({ runs: [] }));
+  document.getElementById('payrollRows').innerHTML = p.runs.map(x =>
+    '<tr><td>' + esc(x.month) + '</td><td>' + esc(x.status) + '</td><td>' + x.item_count + '</td><td>' +
+    money(x.total_net) + '</td><td>' +
+    '<button type="button" class="sec" onclick="genPayroll(\'' + x.id + '\')">Generate</button> ' +
+    '<button type="button" class="sec" onclick="showPayroll(\'' + x.id + '\')">Items</button> ' +
+    (x.status !== 'finalized' ? '<button type="button" class="sec" onclick="finPayroll(\'' + x.id + '\')">Finalize</button>' : '') +
+    '</td></tr>').join('') || '<tr><td colspan="5">No payroll runs</td></tr>';
+}
+async function decideLeave(id, status) {
+  try { await api('/api/school/hr/leaves/' + id + '/decide', 'POST', { status }); loadHr(); }
+  catch (err) { document.getElementById('leaveMsg').textContent = 'Error: ' + err.message; }
+}
+async function genPayroll(id) {
+  try { const r = await api('/api/school/hr/payroll/runs/' + id + '/generate', 'POST', {}); document.getElementById('payrollMsg').textContent = 'Generated ' + r.generated + ' payslips, total net ' + money(r.total_net); loadHr(); }
+  catch (err) { document.getElementById('payrollMsg').textContent = 'Error: ' + err.message; }
+}
+async function finPayroll(id) {
+  try { await api('/api/school/hr/payroll/runs/' + id + '/finalize', 'POST', {}); loadHr(); }
+  catch (err) { document.getElementById('payrollMsg').textContent = 'Error: ' + err.message; }
+}
+async function showPayroll(id) {
+  const r = await api('/api/school/hr/payroll/runs/' + id + '/items').catch(() => ({ items: [] }));
+  document.getElementById('payrollItems').innerHTML =
+    '<table><thead><tr><th>Staff</th><th>Basic</th><th>Allowances</th><th>Deductions</th><th>Net</th><th></th></tr></thead><tbody>' +
+    r.items.map(x => '<tr><td>' + esc(x.staff_name) + '</td><td>' + money(x.basic) + '</td><td>' + money(x.allowances_total) +
+      '</td><td>' + money(x.deductions) + '</td><td>' + money(x.net) + '</td><td>' +
+      '<button type="button" class="sec" onclick="openHtml(\'/api/school/hr/payroll/payslip/' + x.id + '\')">Payslip</button></td></tr>').join('') +
+    '</tbody></table>';
+}
+
+async function loadAnalytics() {
+  const r = await api('/api/school/analytics/overview').catch(() => null);
+  if (!r) return;
+  const a = r.analytics;
+  document.getElementById('analyticsStats').innerHTML =
+    statCard(a.enrollment.active_students, 'Active students') +
+    statCard(a.enrollment.teachers, 'Teachers') +
+    statCard(a.enrollment.teacher_student_ratio === null ? '—' : a.enrollment.teacher_student_ratio, 'Students per teacher') +
+    statCard(money(a.fees.collected_total), 'Fees collected (all time)') +
+    statCard(money(a.fees.outstanding), 'Fees outstanding') +
+    statCard(a.fees.collection_rate_pct === null ? '—' : a.fees.collection_rate_pct + '%', 'Collection rate') +
+    statCard(a.fees.defaulters, 'Defaulters');
+  document.getElementById('analyticsDetail').innerHTML =
+    '<p><strong>Class strength:</strong> ' + a.enrollment.by_class.map(c => esc(c.class_name) + ': ' + c.students).join(' · ') + '</p>' +
+    '<p><strong>Attendance, last 7 days:</strong> ' + a.attendance.trend.slice(-7).map(d => esc(d.date.slice(5)) + ' ' + (d.pct === null ? '—' : d.pct + '%')).join(' · ') + '</p>' +
+    '<p><strong>Admissions trend:</strong> ' + a.enrollment.trend.map(m => esc(m.month) + ': ' + m.admissions).join(' · ') + '</p>';
+}
+
+async function loadAudit() {
+  const r = await api('/api/school/reports/audit').catch(() => ({ audit_log: [] }));
+  document.getElementById('auditRows').innerHTML = r.audit_log.slice(0, 30).map(x =>
+    '<tr><td>' + esc(new Date(x.created_at).toLocaleString('en-GB')) + '</td><td>' + esc(x.actor_name || '') +
+    ' (' + esc(x.actor_role || '') + ')</td><td>' + esc(x.action) + '</td><td>' + esc(x.entity_type || '') + '</td></tr>').join('') ||
+    '<tr><td colspan="4">No audit entries yet</td></tr>';
+}
+
+async function initPhases(role) {
+  const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? 'block' : 'none'; };
+  const office = ['school_admin', 'school_owner', 'principal'].includes(role);
+  const classOpts = opts(CLASSES, c => c.name);
+  for (const id of ['examClass', 'hwClass', 'ttClass']) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = classOpts;
+  }
+  const subs = await api('/api/school/subjects').catch(() => ({ subjects: [] }));
+  const subOpts = '<option value="">— none —</option>' + opts(subs.subjects, s => s.name);
+  const hwSub = document.getElementById('hwSubject'); if (hwSub) hwSub.innerHTML = subOpts;
+  const ttSub = document.getElementById('ttSubject'); if (ttSub) ttSub.innerHTML = subOpts;
+
+  if (['school_admin', 'school_owner', 'principal', 'teacher', 'parent', 'student', 'accountant', 'hr_manager', 'transport_manager', 'librarian', 'receptionist'].includes(role)) {
+    show('examCard', ['school_admin', 'school_owner', 'principal', 'teacher', 'parent', 'student'].includes(role));
+    show('homeworkCard', ['school_admin', 'school_owner', 'principal', 'teacher', 'parent', 'student'].includes(role));
+    show('timetableCard', ['school_admin', 'school_owner', 'principal', 'teacher', 'parent', 'student', 'receptionist'].includes(role));
+  }
+  if (['parent', 'student', 'teacher'].includes(role)) { show('portalCard', true); loadPortal(role); }
+  if (['school_admin', 'school_owner', 'principal', 'teacher', 'parent', 'student'].includes(role)) { loadExams(); loadHomeworkList(); loadTimetable(); }
+  if (['school_admin', 'school_owner', 'principal', 'transport_manager', 'receptionist', 'parent', 'student'].includes(role)) { show('transportCard', true); loadTransport(); }
+  if (['school_admin', 'school_owner', 'principal', 'librarian', 'receptionist', 'parent', 'student'].includes(role)) { show('libraryCard', true); loadLibrary(); }
+  if (office) { show('inventoryCard', true); loadInventory(); }
+  show('hrCard', true); loadHr();
+  if (office) { show('analyticsCard', true); loadAnalytics(); }
+  if (['school_admin', 'school_owner', 'principal', 'accountant'].includes(role)) { show('reportsCard', true); loadAudit(); }
+}
+
+function formHandler(id, fn) {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('submit', fn);
+}
+function cleanForm(e) {
+  const data = Object.fromEntries(new FormData(e.target).entries());
+  for (const k of Object.keys(data)) if (data[k] === '') delete data[k];
+  return data;
+}
+formHandler('termForm', async (e) => {
+  e.preventDefault();
+  try { await api('/api/school/exams/terms', 'POST', cleanForm(e)); e.target.reset(); loadExams(); }
+  catch (err) { document.getElementById('termMsg').textContent = 'Error: ' + err.message; }
+});
+formHandler('examForm', async (e) => {
+  e.preventDefault();
+  const data = cleanForm(e);
+  data.total_marks = Number(data.total_marks);
+  try { await api('/api/school/exams', 'POST', data); e.target.reset(); loadExams(); }
+  catch (err) { document.getElementById('examMsg').textContent = 'Error: ' + err.message; }
+});
+formHandler('marksForm', async (e) => {
+  e.preventDefault();
+  const examId = document.getElementById('marksExam').value;
+  const entries = document.getElementById('marksText').value.split('\n').map(l => l.trim()).filter(Boolean).map(l => {
+    const parts = l.split(',');
+    return { student_id: parts[0].trim(), marks_obtained: Number(parts[1]) };
+  });
+  try {
+    const r = await api('/api/school/exams/' + examId + '/marks/bulk', 'POST', { entries });
+    document.getElementById('marksMsg').textContent = 'Saved ' + r.saved + ' mark(s).';
+  } catch (err) { document.getElementById('marksMsg').textContent = 'Error: ' + err.message; }
+});
+formHandler('resultForm', async (e) => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target).entries());
+  try {
+    const r = await api('/api/school/exams/results/student/' + data.student_id + '?term_id=' + data.term_id);
+    const x = r.result;
+    document.getElementById('resultView').innerHTML =
+      '<p><strong>' + esc(x.student.name) + '</strong> — ' + x.obtained + ' / ' + x.total + ' · ' + x.pct +
+      '% · Grade <strong>' + esc(x.grade) + '</strong> · GPA ' + x.gpa +
+      (x.position ? ' · Position ' + x.position + ' of ' + x.class_size : '') + '</p>' +
+      '<table><thead><tr><th>Subject</th><th>Obtained</th><th>Total</th><th>%</th><th>Grade</th></tr></thead><tbody>' +
+      x.subjects.map(s => '<tr><td>' + esc(s.subject_name) + '</td><td>' + s.obtained + '</td><td>' + s.total +
+        '</td><td>' + s.pct + '</td><td>' + esc(s.grade) + '</td></tr>').join('') + '</tbody></table>';
+  } catch (err) { document.getElementById('resultView').innerHTML = '<p class="msg">Error: ' + esc(err.message) + '</p>'; }
+});
+document.getElementById('reportCardBtn').addEventListener('click', async () => {
+  const f = document.getElementById('resultForm');
+  const studentId = f.student_id.value;
+  const termId = document.getElementById('resultTerm').value;
+  try { await openHtml('/api/school/exams/report-card/' + studentId + '?term_id=' + termId); }
+  catch (err) { document.getElementById('resultView').innerHTML = '<p class="msg">Error: ' + esc(err.message) + '</p>'; }
+});
+document.getElementById('gradingBtn').addEventListener('click', async () => {
+  const bands = [
+    { label: 'A+', min_pct: 90, max_pct: 100, grade_point: 4 },
+    { label: 'A', min_pct: 80, max_pct: 89.99, grade_point: 3.7 },
+    { label: 'B', min_pct: 70, max_pct: 79.99, grade_point: 3 },
+    { label: 'C', min_pct: 60, max_pct: 69.99, grade_point: 2.5 },
+    { label: 'D', min_pct: 50, max_pct: 59.99, grade_point: 2 },
+    { label: 'E', min_pct: 40, max_pct: 49.99, grade_point: 1 },
+    { label: 'F', min_pct: 0, max_pct: 39.99, grade_point: 0 },
+  ];
+  try { await api('/api/school/exams/grading', 'PUT', { bands }); document.getElementById('gradingMsg').textContent = 'Grading scale saved.'; }
+  catch (err) { document.getElementById('gradingMsg').textContent = 'Error: ' + err.message; }
+});
+formHandler('hwForm', async (e) => {
+  e.preventDefault();
+  try { await api('/api/school/homework', 'POST', cleanForm(e)); e.target.reset(); loadHomeworkList(); }
+  catch (err) { document.getElementById('hwMsg').textContent = 'Error: ' + err.message; }
+});
+formHandler('slotForm', async (e) => {
+  e.preventDefault();
+  const data = cleanForm(e);
+  data.weekday = Number(data.weekday);
+  data.period_no = Number(data.period_no);
+  try { await api('/api/school/timetable/slots', 'POST', data); e.target.reset(); loadTimetable(); }
+  catch (err) { document.getElementById('ttMsg').textContent = 'Error: ' + err.message; }
+});
+formHandler('vehicleForm', async (e) => {
+  e.preventDefault();
+  const data = cleanForm(e);
+  data.capacity = Number(data.capacity || 0);
+  try { await api('/api/school/transport/vehicles', 'POST', data); e.target.reset(); loadTransport(); }
+  catch (err) { document.getElementById('vehicleMsg').textContent = 'Error: ' + err.message; }
+});
+formHandler('routeForm', async (e) => {
+  e.preventDefault();
+  try { await api('/api/school/transport/routes', 'POST', cleanForm(e)); e.target.reset(); loadTransport(); }
+  catch (err) { document.getElementById('routeMsg').textContent = 'Error: ' + err.message; }
+});
+formHandler('stopForm', async (e) => {
+  e.preventDefault();
+  const data = cleanForm(e);
+  data.sequence = Number(data.sequence);
+  try { await api('/api/school/transport/routes/' + data.route_id + '/stops', 'POST', data); e.target.reset(); loadTransport(); }
+  catch (err) { document.getElementById('routeMsg').textContent = 'Error: ' + err.message; }
+});
+formHandler('assignForm', async (e) => {
+  e.preventDefault();
+  const data = cleanForm(e);
+  data.fee_amount = Number(data.fee_amount || 0);
+  try { await api('/api/school/transport/assignments', 'POST', data); e.target.reset(); loadTransport(); }
+  catch (err) { document.getElementById('assignMsg').textContent = 'Error: ' + err.message; }
+});
+formHandler('bookForm', async (e) => {
+  e.preventDefault();
+  const data = cleanForm(e);
+  data.copies_total = Number(data.copies_total || 1);
+  try { await api('/api/school/library/books', 'POST', data); e.target.reset(); loadLibrary(); }
+  catch (err) { document.getElementById('bookMsg').textContent = 'Error: ' + err.message; }
+});
+formHandler('loanForm', async (e) => {
+  e.preventDefault();
+  try { await api('/api/school/library/loans', 'POST', cleanForm(e)); e.target.reset(); loadLibrary(); }
+  catch (err) { document.getElementById('loanMsg').textContent = 'Error: ' + err.message; }
+});
+formHandler('invCatForm', async (e) => {
+  e.preventDefault();
+  try { await api('/api/school/inventory/categories', 'POST', cleanForm(e)); e.target.reset(); loadInventory(); }
+  catch (err) { document.getElementById('invMsg').textContent = 'Error: ' + err.message; }
+});
+formHandler('itemForm', async (e) => {
+  e.preventDefault();
+  const data = cleanForm(e);
+  data.quantity = Number(data.quantity || 0);
+  data.min_stock = Number(data.min_stock || 0);
+  data.unit_cost = Number(data.unit_cost || 0);
+  try { await api('/api/school/inventory/items', 'POST', data); e.target.reset(); loadInventory(); }
+  catch (err) { document.getElementById('invMsg').textContent = 'Error: ' + err.message; }
+});
+formHandler('moveForm', async (e) => {
+  e.preventDefault();
+  const data = cleanForm(e);
+  data.quantity = Number(data.quantity || 0);
+  try { await api('/api/school/inventory/items/' + data.item_id + '/movements', 'POST', data); loadInventory(); document.getElementById('moveMsg').textContent = 'Movement recorded.'; }
+  catch (err) { document.getElementById('moveMsg').textContent = 'Error: ' + err.message; }
+});
+formHandler('leaveForm', async (e) => {
+  e.preventDefault();
+  try { await api('/api/school/hr/leaves', 'POST', cleanForm(e)); e.target.reset(); loadHr(); }
+  catch (err) { document.getElementById('leaveMsg').textContent = 'Error: ' + err.message; }
+});
+formHandler('payrollForm', async (e) => {
+  e.preventDefault();
+  try { await api('/api/school/hr/payroll/runs', 'POST', cleanForm(e)); e.target.reset(); loadHr(); }
+  catch (err) { document.getElementById('payrollMsg').textContent = 'Error: ' + err.message; }
+});
+
+load().catch(() => { location.href = '/'; });
+</script>
+</body>
+</html>

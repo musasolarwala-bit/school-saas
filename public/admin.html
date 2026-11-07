@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Super Admin — School Manager</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="topbar"><div class="brand">🏫 School Manager — Super Admin</div><div><button class="sec" onclick="logout()">Logout</button></div></header>
+<main class="wrap">
+  <h1>All schools</h1>
+  <p class="muted">Suspending a school immediately blocks its logins (checked on every request).</p>
+  <p class="msg" id="msg"></p>
+  <div class="card">
+    <table><thead><tr><th>School</th><th>Slug</th><th>Users</th><th>Status</th><th>Plan</th><th>Subscription</th><th>Expires</th><th>Action</th></tr></thead><tbody id="rows"></tbody></table>
+  </div>
+
+  <div class="card">
+    <h2>Subscriptions</h2>
+    <p class="muted">Pick a school to see its current subscription, assign a package, record a payment (extends the expiry by the package period; Lifetime never expires), or set a student limit (empty = unlimited).</p>
+    <label>School <select id="subSchool"></select></label>
+    <p id="subInfo" class="muted"></p>
+    <div class="grid2">
+      <div>
+        <h3>Assign package</h3>
+        <label>Package <select id="assignPlan"></select></label>
+        <button onclick="assignPlan()">Assign (restarts period from today)</button>
+      </div>
+      <div>
+        <h3>Record payment</h3>
+        <label>Package <select id="payPlan"></select></label>
+        <label>Amount (Rs, empty = package price) <input id="payAmount" type="number" min="1"></label>
+        <label>Method <input id="payMethod" value="Cash"></label>
+        <label>Notes <input id="payNotes"></label>
+        <button onclick="recordPayment()">Record payment</button>
+      </div>
+    </div>
+    <h3>Student limit</h3>
+    <label>Max active students (empty = unlimited) <input id="subLimit" type="number" min="0"></label>
+    <button onclick="setLimit()">Set limit</button>
+    <p class="msg" id="subMsg"></p>
+  </div>
+
+  <div class="card">
+    <h2>Packages (plans)</h2>
+    <p class="muted">Duration packages — one price buys the whole period. Leave the period empty for a Lifetime package.</p>
+    <table><thead><tr><th>Name</th><th>Price (Rs)</th><th>Period</th><th>Active</th><th>Action</th></tr></thead><tbody id="planRows"></tbody></table>
+    <h3 id="planFormTitle">Add package</h3>
+    <form id="planForm">
+      <input type="hidden" name="id">
+      <label>Name <input name="name" required maxlength="100"></label>
+      <label>Price (Rs) <input name="price_pkr" type="number" min="1" required></label>
+      <label>Period in months (empty = Lifetime) <input name="period_months" type="number" min="1"></label>
+      <button type="submit">Save package</button>
+      <button type="button" class="sec" onclick="resetPlanForm()">Clear</button>
+    </form>
+    <p class="msg" id="planMsg"></p>
+  </div>
+</main>
+<script src="/app.js"></script>
+<script>
+let schoolsCache = [];
+let plansCache = [];
+let subsCache = {};
+
+function fmtDate(v) {
+  if (!v) return '—';
+  return new Date(v).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+function periodText(p) {
+  return p.period_months === null ? 'Lifetime' : (p.period_months + ' months');
+}
+
+async function load() {
+  const r = await api('/api/admin/schools');
+  schoolsCache = r.schools;
+  const subs = await api('/api/admin/subscriptions');
+  subsCache = {};
+  subs.subscriptions.forEach(s => { subsCache[s.school_id] = s; });
+  document.getElementById('rows').innerHTML = r.schools.map(s => {
+    const sub = subsCache[s.id];
+    return '<tr><td>' + esc(s.name) + '</td><td>' + esc(s.slug) + '</td><td>' + s.user_count +
+      '</td><td>' + esc(s.status) + '</td><td>' + esc(sub && sub.plan_name ? sub.plan_name : (sub ? 'Trial' : '—')) +
+      '</td><td>' + esc(sub ? sub.status : '—') + '</td><td>' +
+      (sub ? (sub.expires_at ? fmtDate(sub.expires_at) : 'Never') : '—') + '</td><td>' +
+      (s.status === 'active'
+        ? '<button class="danger" onclick="setStatus(\'' + s.id + '\', \'suspend\')">Suspend</button>'
+        : '<button onclick="setStatus(\'' + s.id + '\', \'activate\')">Activate</button>') +
+      '</td></tr>';
+  }).join('') || '<tr><td colspan="8">No schools yet</td></tr>';
+  const sel = document.getElementById('subSchool');
+  const keep = sel.value;
+  sel.innerHTML = r.schools.map(s => '<option value="' + s.id + '">' + esc(s.name) + ' (' + esc(s.slug) + ')</option>').join('');
+  if (keep) sel.value = keep;
+  showSub();
+  await loadPlans();
+}
+
+async function loadPlans() {
+  const r = await api('/api/admin/plans');
+  plansCache = r.plans;
+  document.getElementById('planRows').innerHTML = r.plans.map(p =>
+    '<tr><td>' + esc(p.name) + '</td><td>' + Number(p.price_pkr).toLocaleString() + '</td><td>' + periodText(p) +
+    '</td><td>' + (p.is_active ? 'Yes' : 'No') + '</td><td>' +
+    '<button class="sec" onclick="editPlan(\'' + p.id + '\')">Edit</button> ' +
+    '<button class="sec" onclick="togglePlan(\'' + p.id + '\', ' + (!p.is_active) + ')">' + (p.is_active ? 'Deactivate' : 'Activate') + '</button>' +
+    '</td></tr>').join('') || '<tr><td colspan="5">No packages yet</td></tr>';
+  const opts = r.plans.filter(p => p.is_active).map(p =>
+    '<option value="' + p.id + '">' + esc(p.name) + ' — Rs ' + Number(p.price_pkr).toLocaleString() + ' (' + periodText(p) + ')</option>').join('');
+  document.getElementById('assignPlan').innerHTML = opts;
+  document.getElementById('payPlan').innerHTML = opts;
+}
+
+function showSub() {
+  const id = document.getElementById('subSchool').value;
+  const info = document.getElementById('subInfo');
+  const sub = subsCache[id];
+  if (!sub) { info.textContent = 'No subscription record.'; return; }
+  info.textContent = 'Current: ' + (sub.plan_name || 'Free trial') + ' · Status: ' + sub.status +
+    ' · Started: ' + fmtDate(sub.starts_at) +
+    ' · Expires: ' + (sub.expires_at ? fmtDate(sub.expires_at) : 'Never') +
+    ' · Student limit: ' + (sub.student_limit === null ? 'Unlimited' : sub.student_limit);
+  document.getElementById('subLimit').value = sub.student_limit === null ? '' : sub.student_limit;
+}
+
+async function subAction(path, body, okText) {
+  const out = document.getElementById('subMsg');
+  try {
+    await api(path, 'POST', body);
+    out.textContent = okText;
+    await load();
+  } catch (err) { out.textContent = 'Error: ' + err.message; }
+}
+
+function assignPlan() {
+  const id = document.getElementById('subSchool').value;
+  const planId = document.getElementById('assignPlan').value;
+  if (!id || !planId) return;
+  subAction('/api/admin/schools/' + id + '/subscription/assign', { plan_id: planId }, 'Package assigned.');
+}
+
+function recordPayment() {
+  const id = document.getElementById('subSchool').value;
+  const planId = document.getElementById('payPlan').value;
+  if (!id || !planId) return;
+  const body = { plan_id: planId, method: document.getElementById('payMethod').value || 'Cash' };
+  const amt = document.getElementById('payAmount').value;
+  if (amt) body.amount = Number(amt);
+  const notes = document.getElementById('payNotes').value;
+  if (notes) body.notes = notes;
+  subAction('/api/admin/schools/' + id + '/subscription/payment', body, 'Payment recorded; expiry extended.');
+}
+
+async function setLimit() {
+  const id = document.getElementById('subSchool').value;
+  const out = document.getElementById('subMsg');
+  if (!id) return;
+  const v = document.getElementById('subLimit').value;
+  try {
+    await api('/api/admin/schools/' + id + '/subscription', 'PATCH', { student_limit: v === '' ? null : Number(v) });
+    out.textContent = 'Student limit updated.';
+    await load();
+  } catch (err) { out.textContent = 'Error: ' + err.message; }
+}
+
+function editPlan(id) {
+  const p = plansCache.find(x => x.id === id);
+  if (!p) return;
+  const f = document.getElementById('planForm');
+  f.id.value = p.id;
+  f.name.value = p.name;
+  f.price_pkr.value = p.price_pkr;
+  f.period_months.value = p.period_months === null ? '' : p.period_months;
+  document.getElementById('planFormTitle').textContent = 'Edit package: ' + p.name;
+}
+
+function resetPlanForm() {
+  document.getElementById('planForm').reset();
+  document.getElementById('planForm').id.value = '';
+  document.getElementById('planFormTitle').textContent = 'Add package';
+}
+
+async function togglePlan(id, active) {
+  try { await api('/api/admin/plans/' + id, 'PATCH', { is_active: active }); await loadPlans(); }
+  catch (err) { document.getElementById('planMsg').textContent = 'Error: ' + err.message; }
+}
+
+document.getElementById('subSchool').addEventListener('change', showSub);
+document.getElementById('planForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const data = { name: f.name.value, price_pkr: Number(f.price_pkr.value) };
+  data.period_months = f.period_months.value === '' ? null : Number(f.period_months.value);
+  const out = document.getElementById('planMsg');
+  try {
+    if (f.id.value) await api('/api/admin/plans/' + f.id.value, 'PATCH', data);
+    else await api('/api/admin/plans', 'POST', data);
+    out.textContent = 'Package saved.';
+    resetPlanForm();
+    await load();
+  } catch (err) { out.textContent = 'Error: ' + err.message; }
+});
+
+async function setStatus(id, action) {
+  try { await api('/api/admin/schools/' + id + '/' + action, 'POST', {}); load(); }
+  catch (err) { document.getElementById('msg').textContent = 'Error: ' + err.message; }
+}
+load().catch(() => { location.href = '/'; });
+</script>
+</body>
+</html>
