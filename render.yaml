@@ -14,10 +14,9 @@ services:
     runtime: node
     plan: free
     buildCommand: npm install
-    # Migrations are idempotent (tracked in schema_migrations), so they
-    # apply automatically before every deploy.
-    preDeployCommand: npm run migrate
-    startCommand: npm start
+    # Free tier has no pre-deploy command, so migrations (idempotent,
+    # tracked in schema_migrations) run at every boot instead.
+    startCommand: npm run migrate && npm start
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
